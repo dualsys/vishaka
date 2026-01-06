@@ -10,13 +10,7 @@ import numpy as np
 import joblib
 from fastapi.middleware.cors import CORSMiddleware
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],      # allow ALL origins
-    allow_credentials=True,
-    allow_methods=["*"],      # allow all HTTP methods
-    allow_headers=["*"],      # allow all headers
-)
+
 
 
 # =====================================================
@@ -40,7 +34,13 @@ app = FastAPI(
     description="Predict exam score and performance category from partial student input",
     version="1.0"
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # allow ALL origins
+    allow_credentials=True,
+    allow_methods=["*"],      # allow all HTTP methods
+    allow_headers=["*"],      # allow all headers
+)
 # =====================================================
 # INPUT SCHEMA (ALL OPTIONAL)
 # =====================================================
