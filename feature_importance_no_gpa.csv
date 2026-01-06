@@ -1,0 +1,49 @@
+Feature,Importance
+study_x_motivation,0.4715401802148323
+study_environment_Dorm,0.09962669252859514
+stress_level,0.07192978454040602
+access_to_tutoring_Yes,0.06972976145276669
+sleep_hours,0.0504909164795875
+study_hours_per_day,0.04917898659184508
+motivation_level,0.03703515844323999
+exercise_frequency,0.03667479160837508
+screen_x_study,0.02113165518435115
+study_environment_Quiet Room,0.02061945281971356
+exam_anxiety_score,0.015833133023493595
+mental_x_stress,0.010781348524899193
+screen_time,0.006102959703532607
+stress_x_sleep,0.005771921381330244
+study_environment_Library,0.005743538991488059
+attendance_percentage,0.004809303023399261
+study_environment_Co-Learning Group,0.004680174591738852
+mental_health_rating,0.0034770737295886115
+time_management_score,0.0031823103048629893
+netflix_hours,0.0020056494936815453
+social_media_hours,0.0019716112013996056
+age,0.0011890133395830696
+parental_support_level,0.001056203620328191
+social_activity,0.0008727829629661966
+diet_quality_Good,0.0007560890840454233
+dropout_risk_Yes,0.0006724947191073248
+semester,0.0005190834849600003
+family_income_range_Low,0.0003723879975577095
+major_Biology,0.00030785831840530363
+gender_Male,0.00027338361915111274
+part_time_job_Yes,0.00026578342765647063
+major_Business,0.00020893725588870212
+extracurricular_participation_Yes,0.0002084963482824816
+major_Computer Science,0.00019442232478170463
+major_Engineering,0.00015585115657598016
+internet_quality_Medium,0.000143580037803728
+internet_quality_Low,0.00012198940731566518
+learning_style_Visual,0.0001063931712816829
+parental_education_level_Some College,8.777314329935291e-05
+learning_style_Kinesthetic,7.408152827238002e-05
+family_income_range_Medium,4.267908448050628e-05
+parental_education_level_High School,3.255789435655906e-05
+major_Psychology,1.4185300379929955e-05
+gender_Other,7.5431063756975805e-06
+learning_style_Reading,2.5834017777179256e-08
+parental_education_level_PhD,0.0
+parental_education_level_Master,0.0
+diet_quality_Poor,0.0
