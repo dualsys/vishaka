@@ -1,137 +1,102 @@
 # =====================================================
-# FASTAPI POST API FOR PREDICTION
+# FASTAPI FOR MONOTONIC EXAM SCORE PREDICTION
 # =====================================================
 
 from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import Optional, Dict
-import pandas as pd
-import numpy as np
-import joblib
 from fastapi.middleware.cors import CORSMiddleware
-
-
-
-
-# =====================================================
-# LOAD ARTIFACTS (ONCE AT STARTUP)
-# =====================================================
-reg_model = joblib.load("exam_score_regression_model_no_gpa.pkl")
-clf_model = joblib.load("performance_classification_model_no_gpa.pkl")
-
-reg_features = joblib.load("regression_features_no_gpa.pkl")
-clf_features = joblib.load("classification_features_no_gpa.pkl")
-
-scaler = joblib.load("scaler_no_gpa.pkl")
-numeric_defaults = joblib.load("numeric_defaults.pkl")
-categorical_defaults = joblib.load("categorical_defaults.pkl")
+import joblib
+import pandas as pd
 
 # =====================================================
-# FASTAPI APP
+# APP INITIALIZATION
 # =====================================================
 app = FastAPI(
-    title="Student Exam Score Prediction API",
-    description="Predict exam score and performance category from partial student input",
+    title="Student Exam Score Prediction API (Monotonic)",
     version="1.0"
 )
+
+# Allow all CORS (demo / PhD safe)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # allow ALL origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],      # allow all HTTP methods
-    allow_headers=["*"],      # allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-# =====================================================
-# INPUT SCHEMA (ALL OPTIONAL)
-# =====================================================
-class StudentInput(BaseModel):
-    age: Optional[int] = None
-    gender: Optional[str] = None
-    major: Optional[str] = None
-    study_hours_per_day: Optional[float] = None
-    social_media_hours: Optional[float] = None
-    netflix_hours: Optional[float] = None
-    part_time_job: Optional[str] = None
-    attendance_percentage: Optional[float] = None
-    sleep_hours: Optional[float] = None
-    diet_quality: Optional[str] = None
-    exercise_frequency: Optional[int] = None
-    parental_education_level: Optional[str] = None
-    internet_quality: Optional[str] = None
-    mental_health_rating: Optional[float] = None
-    extracurricular_participation: Optional[str] = None
-    semester: Optional[int] = None
-    stress_level: Optional[float] = None
-    dropout_risk: Optional[str] = None
-    social_activity: Optional[int] = None
-    screen_time: Optional[float] = None
-    study_environment: Optional[str] = None
-    access_to_tutoring: Optional[str] = None
-    family_income_range: Optional[str] = None
-    parental_support_level: Optional[int] = None
-    motivation_level: Optional[int] = None
-    exam_anxiety_score: Optional[int] = None
-    learning_style: Optional[str] = None
-    time_management_score: Optional[float] = None
 
 # =====================================================
-# HELPER: MERGE USER INPUT WITH DEFAULTS
+# LOAD ARTIFACTS (FROM monotonic_model/artifacts)
 # =====================================================
-def build_complete_input(user_data: Dict):
-    full_input = {}
+ARTIFACT_DIR = "monotonic_model/artifacts"
 
-    for key, default in numeric_defaults.items():
-        full_input[key] = user_data.get(key, default)
-
-    for key, default in categorical_defaults.items():
-        full_input[key] = user_data.get(key, default)
-
-    return full_input
+model = joblib.load(f"{ARTIFACT_DIR}/exam_score_monotonic_xgb.pkl")
+feature_list = joblib.load(f"{ARTIFACT_DIR}/feature_list.pkl")
+numeric_defaults = joblib.load(f"{ARTIFACT_DIR}/numeric_defaults.pkl")
+categorical_defaults = joblib.load(f"{ARTIFACT_DIR}/categorical_defaults.pkl")
 
 # =====================================================
-# POST ENDPOINT
+# HELPER: PREPROCESS INPUT
 # =====================================================
-@app.post("/predict")
-def predict(input_data: StudentInput):
-    user_input = input_data.dict(exclude_unset=True)
+def preprocess_input(user_input: dict):
+    data = {}
 
-    # Fill missing fields
-    final_input = build_complete_input(user_input)
+    # Fill numeric defaults
+    for col, default in numeric_defaults.items():
+        data[col] = user_input.get(col, default)
 
-    # DataFrame
-    df = pd.DataFrame([final_input])
+    # Fill categorical defaults
+    for col, default in categorical_defaults.items():
+        data[col] = user_input.get(col, default)
 
-    # Feature engineering
-    df["study_x_motivation"] = df["study_hours_per_day"] * df["motivation_level"]
+    df = pd.DataFrame([data])
+
+    # Feature engineering (MUST MATCH TRAINING)
+    df["study_x_motivation"] = (
+        df["study_hours_per_day"] * df["motivation_level"]
+    )
     df["stress_x_sleep"] = df["stress_level"] * df["sleep_hours"]
     df["screen_x_study"] = df["screen_time"] * df["study_hours_per_day"]
     df["mental_x_stress"] = df["mental_health_rating"] * df["stress_level"]
 
     # One-hot encode
-    df = pd.get_dummies(df)
+    df = pd.get_dummies(df, drop_first=True)
 
-    # ---------------- REGRESSION ----------------
-    X_reg = df.reindex(columns=reg_features, fill_value=0)
+    # Align features with training
+    for col in feature_list:
+        if col not in df.columns:
+            df[col] = 0
 
-    scaler_cols = scaler.feature_names_in_
-    common_cols = [c for c in scaler_cols if c in X_reg.columns]
-    X_reg.loc[:, common_cols] = scaler.transform(X_reg[common_cols])
+    df = df[feature_list]
+    return df
 
-    exam_score = float(reg_model.predict(X_reg)[0])
+# =====================================================
+# PERFORMANCE CATEGORY
+# =====================================================
+def performance_category(score: float) -> str:
+    if score >= 85:
+        return "High"
+    elif score >= 70:
+        return "Medium"
+    else:
+        return "Low"
 
-    # ---------------- CLASSIFICATION ----------------
-    X_clf = df.reindex(columns=clf_features, fill_value=0)
-    common_cols_clf = [c for c in scaler_cols if c in X_clf.columns]
-    X_clf.loc[:, common_cols_clf] = scaler.transform(X_clf[common_cols_clf])
+# =====================================================
+# ROUTES
+# =====================================================
+@app.get("/")
+def root():
+    return {"message": "Monotonic Exam Score Prediction API is running"}
 
-    performance_class = clf_model.predict(X_clf)[0]
+@app.post("/predict")
+def predict(payload: dict):
+    X = preprocess_input(payload)
+    score = float(model.predict(X)[0])
 
     return {
-        "predicted_exam_score": round(exam_score, 2),
-        "predicted_performance_class": performance_class,
-        "inputs_used": list(user_input.keys()),
-        "missing_inputs_filled_with_defaults": list(
-            set(numeric_defaults.keys()).union(categorical_defaults.keys())
-            - set(user_input.keys())
-        )
+        "predicted_exam_score": round(score, 2),
+        "predicted_performance_category": performance_category(score),
+        "inputs_provided": list(payload.keys()),
+        "missing_inputs_filled": [
+            k for k in numeric_defaults.keys() if k not in payload
+        ]
     }
